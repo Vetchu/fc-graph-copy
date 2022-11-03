@@ -7,6 +7,7 @@ import states
 server = Bottle()
 
 if __name__ == '__main__':
+    print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
     app.register()
     server.mount('/api', api_server)
     server.mount('/web', web_server)

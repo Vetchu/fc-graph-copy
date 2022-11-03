@@ -1,6 +1,112 @@
 from utils.utils import load_data_loader, check_dims
 import os
+import networkx as nx
+from sklearn.cluster import SpectralClustering
+import pandas as pd
 import numpy as np
+import torch
+
+class Patients:
+    def __init__(self, path):
+        self.raw_data = pd.read_csv(path)
+        self.patientsdf = self.load_patients()
+        
+    def load_patients(self):
+        self.raw_data.read_data_from_csv()
+        # extract all existing phenotypes
+        self.all_phenotypes = self.get_all_phenotypes()
+        # create patients dataframe with id and phenotypes as columns
+        patientsdf = self.extract_patients()
+        return patientsdf
+
+    def get_all_phenotypes(self):
+        # extract all existing phenotypes 
+        all_phenotypes = []
+        for index, row in self.raw_data.mimic_labevents_df.iterrows():
+            patient_list = row.to_string().split(";", 1)
+            id_patient = patient_list[0].split()[1]
+            hp = patient_list[0].split()[3] #works differently in ipynb and py
+            if hp not in all_phenotypes:
+                all_phenotypes.append(hp)
+        return all_phenotypes
+
+    def extract_patients(self):
+        df_columns = ['id'] + self.all_phenotypes 
+        patientsdf = pd.DataFrame(columns=df_columns)
+
+        first_row = self.raw_data.mimic_labevents_df.iloc[0]
+        first_id =  self.raw_data.mimic_labevents_df.iloc[0]['id']
+        patient_dict = dict()
+        
+        for _, row in self.raw_data.mimic_labevents_df.iterrows():   
+            id_patient = row['id']
+            hp = row['hpo']
+            
+            if id_patient == first_id:
+                patient_dict[hp] = 1
+            else:
+                # append previous patient to dataframe
+                patient_dict['id'] = first_id
+                for phenotype in self.all_phenotypes:
+                    if phenotype not in patient_dict.keys():
+                        patient_dict[phenotype] = 0
+                        
+                patientsdf = patientsdf.append(patient_dict, ignore_index = True)
+                
+                # prepare the next patient
+                first_id = id_patient
+                phenotypes_dict = dict()
+                phenotypes_dict[hp] = 1 
+
+        # append last patient
+        patient_dict['id'] = first_id
+        for phenotype in self.all_phenotypes:
+            if phenotype not in patient_dict.keys():
+                patient_dict[phenotype] = 0
+        patientsdf = patientsdf.append(patient_dict, ignore_index = True)
+        return patientsdf
+
+class GraphCSVInput():
+    def __init__(self, path):
+        self.patients = Patients(path)
+        self.features = self.patients.patientsdf.iloc[:, self.patients.patientsdf.columns != 'id'].values  
+        self.features = torch.tensor(self.features.astype('float'), dtype=torch.float32)
+        self.G = self.create_graph(self.patients.patientsdf)
+        self.adj = self.create_adj()
+        self.labels = self.create_labels()
+    def create_adj(self):
+        adj_mat = np.asarray(nx.to_numpy_matrix(self.G))
+        adj = adj_mat + adj_mat.T * (adj_mat.T > adj_mat) - adj_mat @(adj_mat.T > adj_mat)
+        adj=torch.tensor(adj,dtype=torch.float32)
+        return adj
+
+    def create_graph(self, patients):
+        G = nx.Graph()
+        # create patients nodes
+        all_ids = patients['id']
+        for id in all_ids:
+            G.add_node(id)
+        # add edges between nodes depending on the number of phenotypes shared
+        for index_1, row_1 in patients.iterrows():
+            for index_2, row_2 in patients.iterrows():
+                if index_1 < index_2:
+                    shared_hp = 0
+                    for hp in range(1, len(row_1)):
+                        if row_1[hp] == row_2[hp]:
+                            shared_hp += 1
+                    G.add_edge(row_1['id'], row_2['id'], weight=shared_hp)
+        return G
+
+    def create_labels(self):
+        sc = SpectralClustering(4, affinity='precomputed', n_init=100)
+        adj_mat = np.asarray(nx.to_numpy_matrix(self.G))
+        sc.fit(adj_mat)
+        y_sc = sc.labels_
+        idx_features_labels = np.array(y_sc)
+        #labels = self.encode_onehot(idx_features_labels[:])
+        labels = idx_features_labels[:]
+        labels = torch.LongTensor(labels)
+        return labels
 
 
 class DataReader:
@@ -13,12 +119,10 @@ class DataReader:
                   f"The program consider this as NO FILE IS REQUIRED!")
             return None
         if os.path.exists(path):
-            if self.file_format in ['npz', 'npy']:
-                if self.file_format == 'npz':
-                    ds = np.load(path, allow_pickle=True)
-                    x, y = ds['data'], ds['targets']
-                else:  # self.file_format == 'npy':
-                    x, y = np.load(path, allow_pickle=True)
+            if self.file_format == 'csv':
+                graphcsvinput = GraphCSVInput()
+                x = graphcsvinput.features
+                y = graphcsvinput.labels
                 return check_dims(x), y
             print(f"{self.file_format} is not supported file format")
         else:
