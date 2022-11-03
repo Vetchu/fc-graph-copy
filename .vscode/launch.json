@@ -1,0 +1,17 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "~/software/miniconda3/envs/featurecloud/lib/python3.8/site-packages/FeatureCloud/api/cli",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": ["test", "start", "--app-image=featurecloud.ai/fc_deep_networks", "--client-dirs=./sample_data/c1,./sample_data/c2", "--generic-dir=./sample_data/generic"]
+        }
+    ]
+}
