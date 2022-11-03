@@ -2,3 +2,4 @@ featurecloud
 scipy
 scikit-learn
 bios
+networkx
