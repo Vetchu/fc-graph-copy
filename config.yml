@@ -2,15 +2,15 @@ fc_deep:
   local_dataset:
     train: "train.npz"
     test: "test.npz"
-#    train: "train.npz"
-#    test: "test.npz"
-#    central_test: "mnist.npz"
+    #    train: "train.npz"
+    #    test: "test.npz"
+    #    central_test: "mnist.npz"
     central_test: None
 
 
   logic:
-#    mode: "file"
-#    dir: "."
+    #    mode: "file"
+    #    dir: "."
     mode: "directory"
     dir: "data"
 

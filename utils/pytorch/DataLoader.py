@@ -1,16 +1,19 @@
-from utils.utils import load_data_loader, check_dims
 import os
+
 import networkx as nx
-from sklearn.cluster import SpectralClustering
-import pandas as pd
 import numpy as np
+import pandas as pd
 import torch
+from sklearn.cluster import SpectralClustering
+
+from utils.utils import load_data_loader, check_dims
+
 
 class Patients:
     def __init__(self, path):
         self.raw_data = pd.read_csv(path)
         self.patientsdf = self.load_patients()
-        
+
     def load_patients(self):
         self.raw_data.read_data_from_csv()
         # extract all existing phenotypes
@@ -25,23 +28,23 @@ class Patients:
         for index, row in self.raw_data.mimic_labevents_df.iterrows():
             patient_list = row.to_string().split(";", 1)
             id_patient = patient_list[0].split()[1]
-            hp = patient_list[0].split()[3] #works differently in ipynb and py
+            hp = patient_list[0].split()[3]  # works differently in ipynb and py
             if hp not in all_phenotypes:
                 all_phenotypes.append(hp)
         return all_phenotypes
 
     def extract_patients(self):
-        df_columns = ['id'] + self.all_phenotypes 
+        df_columns = ['id'] + self.all_phenotypes
         patientsdf = pd.DataFrame(columns=df_columns)
 
         first_row = self.raw_data.mimic_labevents_df.iloc[0]
-        first_id =  self.raw_data.mimic_labevents_df.iloc[0]['id']
+        first_id = self.raw_data.mimic_labevents_df.iloc[0]['id']
         patient_dict = dict()
-        
-        for _, row in self.raw_data.mimic_labevents_df.iterrows():   
+
+        for _, row in self.raw_data.mimic_labevents_df.iterrows():
             id_patient = row['id']
             hp = row['hpo']
-            
+
             if id_patient == first_id:
                 patient_dict[hp] = 1
             else:
@@ -50,34 +53,36 @@ class Patients:
                 for phenotype in self.all_phenotypes:
                     if phenotype not in patient_dict.keys():
                         patient_dict[phenotype] = 0
-                        
-                patientsdf = patientsdf.append(patient_dict, ignore_index = True)
-                
+
+                patientsdf = patientsdf.append(patient_dict, ignore_index=True)
+
                 # prepare the next patient
                 first_id = id_patient
                 phenotypes_dict = dict()
-                phenotypes_dict[hp] = 1 
+                phenotypes_dict[hp] = 1
 
-        # append last patient
+                # append last patient
         patient_dict['id'] = first_id
         for phenotype in self.all_phenotypes:
             if phenotype not in patient_dict.keys():
                 patient_dict[phenotype] = 0
-        patientsdf = patientsdf.append(patient_dict, ignore_index = True)
+        patientsdf = patientsdf.append(patient_dict, ignore_index=True)
         return patientsdf
+
 
 class GraphCSVInput():
     def __init__(self, path):
         self.patients = Patients(path)
-        self.features = self.patients.patientsdf.iloc[:, self.patients.patientsdf.columns != 'id'].values  
+        self.features = self.patients.patientsdf.iloc[:, self.patients.patientsdf.columns != 'id'].values
         self.features = torch.tensor(self.features.astype('float'), dtype=torch.float32)
         self.G = self.create_graph(self.patients.patientsdf)
         self.adj = self.create_adj()
         self.labels = self.create_labels()
+
     def create_adj(self):
         adj_mat = np.asarray(nx.to_numpy_matrix(self.G))
-        adj = adj_mat + adj_mat.T * (adj_mat.T > adj_mat) - adj_mat @(adj_mat.T > adj_mat)
-        adj=torch.tensor(adj,dtype=torch.float32)
+        adj = adj_mat + adj_mat.T * (adj_mat.T > adj_mat) - adj_mat @ (adj_mat.T > adj_mat)
+        adj = torch.tensor(adj, dtype=torch.float32)
         return adj
 
     def create_graph(self, patients):
@@ -103,7 +108,7 @@ class GraphCSVInput():
         sc.fit(adj_mat)
         y_sc = sc.labels_
         idx_features_labels = np.array(y_sc)
-        #labels = self.encode_onehot(idx_features_labels[:])
+        # labels = self.encode_onehot(idx_features_labels[:])
         labels = idx_features_labels[:]
         labels = torch.LongTensor(labels)
         return labels
@@ -157,7 +162,6 @@ class DataLoader(DataReader):
         else:
             self.train_loader = IterLoader(self.train_path, self.train_batch_size)
             self.train_loader_for_test = IterLoader(self.train_path, self.test_batch_size)
-
 
     def load_data_loader(self):
         data = self.read_file(self.train_path)

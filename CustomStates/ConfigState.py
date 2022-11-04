@@ -11,9 +11,10 @@
     See the License for the specific language governing permissions and
     limitations under the License.
 """
-import bios
 import os
 import shutil
+
+import bios
 from FeatureCloud.app.engine.app import AppState, LogLevel
 
 

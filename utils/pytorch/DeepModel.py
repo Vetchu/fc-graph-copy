@@ -16,10 +16,10 @@
     limitations under the License.
 
 """
-from torch import nn
-import torch.optim as optim
-import torch
 import numpy as np
+import torch
+import torch.optim as optim
+from torch import nn
 
 
 class Model:

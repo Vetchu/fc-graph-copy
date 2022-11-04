@@ -1,5 +1,6 @@
-from utils.pytorch.states import Initialization, LocalUpdate, GlobalAggregation, WriteResults
 from FeatureCloud.app.engine.app import app_state, Role
+
+from utils.pytorch.states import Initialization, LocalUpdate, GlobalAggregation, WriteResults
 
 name = 'fc_deep'
 

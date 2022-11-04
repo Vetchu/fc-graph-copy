@@ -1,19 +1,21 @@
 from abc import ABC
+from copy import deepcopy
+from itertools import compress
 
 import numpy as np
+import pandas as pd
+import torch
 from FeatureCloud.app.engine.app import AppState, LogLevel
 from FeatureCloud.app.engine.app import State as op_state
+
 from CustomStates import ConfigState
-from utils.pytorch.DataLoader import DataLoader
-from utils.utils import design_model
-from utils.pytorch.DeepModel import Model
 from utils.pytorch.ClientModels import ClientModels
-from itertools import compress
-import pandas as pd
-from copy import deepcopy
-import torch
+from utils.pytorch.DataLoader import DataLoader
+from utils.pytorch.DeepModel import Model
+from utils.utils import design_model
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
 class Initialization(ConfigState.State, ABC):
     """
