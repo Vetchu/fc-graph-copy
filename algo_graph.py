@@ -16,24 +16,22 @@ from torch.nn.parameter import Parameter
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
+diagnose_icd_hpo_file_name = "DIAGNOSE_ICD_hpo.csv"
+mimic_diagnose_icd9_file_name = "MIMIC_DIAGNOSE_ICD9.csv"
+mimic_export_1_subjects_file_name = "MIMIC_Export_1_Subjects.csv"
+mimic_export_2_labevents_hpo_file_name = "MIMIC_Export_2_Labevents_HPO.csv"
 
-class Patients:
-    def __init__(self):
-        self.raw_data = RawData()
-        self.patientsdf = self.load_patients()
 
-    def load_patients(self):
-        self.raw_data.read_data_from_csv()
-        # extract all existing phenotypes
-        self.all_phenotypes = self.get_all_phenotypes()
-        # create patients dataframe with id and phenotypes as columns
-        patientsdf = self.extract_patients()
-        return patientsdf
+def get_patients():
+    raw_data = get_raw_data(diagnose_icd_hpo_file_name,
+                            mimic_diagnose_icd9_file_name,
+                            mimic_export_1_subjects_file_name,
+                            mimic_export_2_labevents_hpo_file_name)
 
-    def get_all_phenotypes(self):
-        # extract all existing phenotypes 
+    # extract all existing phenotypes
+    def get_all_phenotypes():
         all_phenotypes = []
-        for index, row in self.raw_data.mimic_labevents_df.iterrows():
+        for index, row in raw_data["mimic_labevents_df"].iterrows():
             patient_list = row.to_string().split(";", 1)
             id_patient = patient_list[0].split()[1]
             hp = patient_list[0].split()[3]  # works differently in ipynb and py
@@ -41,15 +39,17 @@ class Patients:
                 all_phenotypes.append(hp)
         return all_phenotypes
 
-    def extract_patients(self):
-        df_columns = ['id'] + self.all_phenotypes
+    all_phenotypes = get_all_phenotypes()
+
+    def extract_patients():
+        df_columns = ['id'] + all_phenotypes
         patientsdf = pd.DataFrame(columns=df_columns)
 
-        first_row = self.raw_data.mimic_labevents_df.iloc[0]
-        first_id = self.raw_data.mimic_labevents_df.iloc[0]['id']
+        first_row = raw_data["mimic_labevents_df"].iloc[0]
+        first_id = raw_data["mimic_labevents_df"].iloc[0]['id']
         patient_dict = dict()
 
-        for _, row in self.raw_data.mimic_labevents_df.iterrows():
+        for _, row in raw_data["mimic_labevents_df"].iterrows():
             id_patient = row['id']
             hp = row['hpo']
 
@@ -58,7 +58,7 @@ class Patients:
             else:
                 # append previous patient to dataframe
                 patient_dict['id'] = first_id
-                for phenotype in self.all_phenotypes:
+                for phenotype in all_phenotypes:
                     if phenotype not in patient_dict.keys():
                         patient_dict[phenotype] = 0
 
@@ -71,29 +71,35 @@ class Patients:
 
                 # append last patient
         patient_dict['id'] = first_id
-        for phenotype in self.all_phenotypes:
+        for phenotype in all_phenotypes:
             if phenotype not in patient_dict.keys():
                 patient_dict[phenotype] = 0
         patientsdf = patientsdf.append(patient_dict, ignore_index=True)
         return patientsdf
 
+    # create patients dataframe with id and phenotypes as columns
+    patientsdf = extract_patients()
+    return patientsdf
 
-class RawData:
-    def __init__(self):
-        self.dirpath = os.path.dirname(os.path.abspath(__file__))
-        self.diagnose_icd_hpo_file_name = "DIAGNOSE_ICD_hpo.csv"
-        self.mimic_diagnose_icd9_file_name = "MIMIC_DIAGNOSE_ICD9.csv"
-        self.mimic_export_1_subjects_file_name = "MIMIC_Export_1_Subjects.csv"
-        self.mimic_export_2_labevents_hpo_file_name = "MIMIC_Export_2_Labevents_HPO.csv"
 
-    def read_data_from_csv(self):
-        self.diagnose_df = pd.read_csv(os.path.join(self.dirpath, self.diagnose_icd_hpo_file_name))
-        self.mimic_diagnose_df = pd.read_csv(
-            os.path.join(self.dirpath, self.mimic_diagnose_icd9_file_name))  # output data (icd9 codes)
-        self.mimic_subjects_df = pd.read_csv(
-            os.path.join(self.dirpath, self.mimic_export_1_subjects_file_name))  # patients ids
-        self.mimic_labevents_df = pd.read_csv(os.path.join(self.dirpath, self.mimic_export_2_labevents_hpo_file_name),
-                                              sep=";", names=['id', 'hpo'], header=None)  # input features
+def get_raw_data(diagnose_icd_hpo_file_name,
+                 mimic_diagnose_icd9_file_name,
+                 mimic_export_1_subjects_file_name,
+                 mimic_export_2_labevents_hpo_file_name):
+    def read_file(filename, **kwargs):
+        return pd.read_csv(os.path.join(dirpath, filename), **kwargs)
+
+    dirpath = os.path.dirname(os.path.abspath(__file__))
+
+    return {
+        "diagnose_df": read_file(diagnose_icd_hpo_file_name),
+        "mimic_diagnose_df": read_file(mimic_diagnose_icd9_file_name),
+        # output data (icd9 codes)
+        "mimic_subjects_df": read_file(mimic_export_1_subjects_file_name),  # patients ids
+        "mimic_labevents_df": read_file(mimic_export_2_labevents_hpo_file_name, sep=";", names=['id', 'hpo'],
+                                        header=None)
+    }
+    # return diagnose_df, mimic_diagnose_df, mimic_subjects_df, mimic_labevents_df
 
 
 class GraphConvolution_subsubmodule(Module):
@@ -175,7 +181,7 @@ class GCN_submodule(nn.Module):
 
 class Model():
     def __init__(self):
-        self.patients = Patients()
+        self.patients = get_patients()
         self.features = self.patients.patientsdf.iloc[:, self.patients.patientsdf.columns != 'id'].values
         self.features = torch.tensor(self.features.astype('float'), dtype=torch.float32)
         self.G = self.create_graph(self.patients.patientsdf)

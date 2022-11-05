@@ -1,4 +1,4 @@
 #!/bin/bash -xe
-featurecloud test start --app-image fc-graph \
-    --client-dirs './sample_data/c1,./sample_data/c2' \
-    --generic-dir './sample_data/generic'
+featurecloud test start --app-image featurecloud.ai/fc_deep_networks \
+    --client-dirs './graph_data/group1,./graph_data/group2' \
+    --generic-dir './graph_data/generic'
