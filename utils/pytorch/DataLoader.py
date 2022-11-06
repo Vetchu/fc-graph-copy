@@ -1,33 +1,35 @@
 import os
-
+import warnings
 import networkx as nx
 import numpy as np
 import pandas as pd
 import torch
 from sklearn.cluster import SpectralClustering
 
-from utils.utils import load_data_loader, check_dims
+from utils.utils import load_data_loader
 
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 class Patients:
     def __init__(self, path):
-        self.raw_data = pd.read_csv(path)
+        self.raw_data = self.read_data_from_csv(path)
         self.patientsdf = self.load_patients()
 
     def load_patients(self):
-        self.raw_data.read_data_from_csv()
         # extract all existing phenotypes
         self.all_phenotypes = self.get_all_phenotypes()
         # create patients dataframe with id and phenotypes as columns
         patientsdf = self.extract_patients()
         return patientsdf
 
+    def read_data_from_csv(self, path):
+        return pd.read_csv(path, sep=";", names=['id', 'hpo'], header=None)
+
     def get_all_phenotypes(self):
         # extract all existing phenotypes 
         all_phenotypes = []
-        for index, row in self.raw_data.mimic_labevents_df.iterrows():
+        for _, row in self.raw_data.iterrows():
             patient_list = row.to_string().split(";", 1)
-            id_patient = patient_list[0].split()[1]
             hp = patient_list[0].split()[3]  # works differently in ipynb and py
             if hp not in all_phenotypes:
                 all_phenotypes.append(hp)
@@ -37,11 +39,10 @@ class Patients:
         df_columns = ['id'] + self.all_phenotypes
         patientsdf = pd.DataFrame(columns=df_columns)
 
-        first_row = self.raw_data.mimic_labevents_df.iloc[0]
-        first_id = self.raw_data.mimic_labevents_df.iloc[0]['id']
+        first_id = self.raw_data.iloc[0]['id']
         patient_dict = dict()
 
-        for _, row in self.raw_data.mimic_labevents_df.iterrows():
+        for _, row in self.raw_data.iterrows():
             id_patient = row['id']
             hp = row['hpo']
 
@@ -125,10 +126,10 @@ class DataReader:
             return None
         if os.path.exists(path):
             if self.file_format == 'csv':
-                graphcsvinput = GraphCSVInput()
+                graphcsvinput = GraphCSVInput(path)
                 x = graphcsvinput.features
                 y = graphcsvinput.labels
-                return check_dims(x), y
+                return x, y
             print(f"{self.file_format} is not supported file format")
         else:
             print(f"{path} File Not Found!!!")
