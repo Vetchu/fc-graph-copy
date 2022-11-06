@@ -9,3 +9,4 @@ test_federated.py
 test
 data/tests/
 data/logs/
+play.py
