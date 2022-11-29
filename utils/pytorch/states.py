@@ -72,6 +72,8 @@ class Initialization(ConfigState.State, ABC):
         self.store("state_dict", [client_model.get_optimizer_params()] * len(data_loaders))
         self.store('client_model', client_model)
         self.store('data_loaders', data_loaders)
+        self.update(message=f"Writing Results")
+        pd.DataFrame(data_loaders[-1]).to_csv(self.load('output_files')['data'], index=None)
 
     def load_central_testset(self, model):
         dl = DataLoader(train_path=None, test_path=self.load('input_files')['central_test'][0])
@@ -81,7 +83,6 @@ class Initialization(ConfigState.State, ABC):
                      )
         dl = dl.test_loader
         self.store('test_loader', dl)
-
 
 class LocalUpdate(AppState, ABC):
     """ Local Model training

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build . --tag featurecloud.ai/fc_deep_networks
+docker build . --tag featurecloud.ai/fl-cfr-test 
