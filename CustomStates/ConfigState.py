@@ -103,19 +103,13 @@ class State(AppState):
              Regarding the `mode` of the Utils, there should be some splits for data,
              and for each data, different splits should be processed.
         """
-        if self.mode == "directory":
-            splits = [f.path for f in os.scandir(f'{self.input_dir}/{self.dir}') if f.is_dir()]
-        else:
-            splits = [self.input_dir, ]
-        self.store('splits', set(sorted(splits)))
-        self.log(f" Splits order:")
-        for i, split in enumerate(self.load('splits')):
-            self.log(f"Split {i}: {split}")
-        self.store('input_files', {k: [f"{split}/{v}" for split in self.load('splits')]
-                                   for k, v in self.config['local_dataset'].items()})
-        self.store('output_files', {k: [f"{split.replace('/input', '/output')}/{v}"
-                                        for split in self.load('splits')]
-                                    for k, v in self.config['result'].items()})
+        self.store('input_files', {'data': self.config['input']['data']})
+        self.store('output_files', {'train': self.config['output']['train'],
+                                    "test": self.config['output']['test']})
+
+        # self.store('output_files', {k: [f"{split.replace('/input', '/output')}/{v}"
+        #                                 for split in self.load('splits')]
+        #                             for k, v in self.config['result'].items()})
         for split in self.load('splits'):
             os.makedirs(split.replace("/input", "/output"), exist_ok=True)
         shutil.copyfile(self.input_dir + '/config.yml', self.output_dir + '/config.yml')

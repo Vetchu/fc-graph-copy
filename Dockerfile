@@ -1,9 +1,8 @@
 FROM python:3.8-buster
+RUN pip3 install --upgrade pip
 
 RUN apt-get update && apt-get install -y \
     supervisor nginx
-
-RUN pip3 install --upgrade pip
 
 COPY server_config/supervisord.conf /supervisord.conf
 COPY server_config/nginx /etc/nginx/sites-available/default

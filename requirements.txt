@@ -2,10 +2,8 @@ featurecloud
 scipy
 scikit-learn
 bios
-networkx
+# networkx
 numpy
 pandas
 bottle
-# torchvision==0.10.0+cpu
-# torch==1.9.0+cpu
-Pillow
+# Pillow

@@ -1,14 +1,15 @@
 from abc import ABC
 
-import pandas as pd
+from FeatureCloud.app.engine.app import AppState
+from FeatureCloud.app.engine.app import State as op_state
 from FeatureCloud.app.engine.app import app_state, Role
-from FeatureCloud.app.engine.library import ConfigState
 
+from CustomStates import ConfigState
 from prepare_file_for_fc import read_csv
 
 # from utils.pytorch.states import Initialization, LocalUpdate, GlobalAggregation, WriteResults
 
-name = 'fc-cfr-test'
+name = 'fl-cfr-test'
 
 
 class Initialization(ConfigState.State, ABC):
@@ -43,11 +44,8 @@ class B1(Initialization):
         return 'Local_Update'
 
 
-from FeatureCloud.app.engine.app import State as op_state
-
-
 @app_state('Local_Update', Role.BOTH)
-class B2:
+class B2(AppState, ABC):
     """ Local Model training
         Input:
             Model weights(Coordinator already has it)
@@ -55,19 +53,24 @@ class B2:
     """
 
     # LocalUpdate
+
     def register(self):
-        self.register_transition('Global_Aggregation', Role.COORDINATOR)
-        self.register_transition('Local_Update', Role.PARTICIPANT)
-        self.register_transition('Write_Results', Role.PARTICIPANT)
+        self.register_transition('terminal', label="Terminate the execution")
+
+    # def register(self):
+    #     self.register_transition('Global_Aggregation', Role.COORDINATOR)
+    #     self.register_transition('Local_Update', Role.PARTICIPANT)
+    #     self.register_transition('Write_Results', Role.PARTICIPANT)
 
     def run(self) -> str or None:
-        msg = read_csv()
-        # msg = super().run()
-        if msg is not None:
-            return 'Write_Results'
-        if self.is_coordinator:
-            return 'Global_Aggregation'
-        return 'Local_Update'
+        msg = read_csv(self.load("input_files")["data"])
+        # pd.DataFrame(y_pred, columns=['y_pred']).to_csv(self.load('output_files')['central_pred'][0],
+        #                                                 index=None)
+        # pd.DataFrame(y_true, columns=['y_true']).to_csv(self.load('output_files')['central_target'][0],
+        #                                                 index=None)
+
+        self.update(message="Finished!")
+        return 'terminal'
 
 # @app_state('Global_Aggregation', Role.COORDINATOR)
 # class C1(GlobalAggregation):

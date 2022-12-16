@@ -4,11 +4,14 @@ from sklearn.model_selection import train_test_split
 import warnings
 
 
-def read_csv():
+def read_csv(path):
     warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+    import glob
+    print("local data", glob.glob("/input/*"))
+    print("local data", glob.glob("/mnt/input/*"))
 
     # read all csv files
-    diagnose_df = pd.read_csv("/input/DIAGNOSE_ICD_hpo.csv")
+    diagnose_df = pd.read_csv("/mnt/input/" + path)  # "/input/DIAGNOSE_ICD_hpo.csv")
 
     final_df = diagnose_df.copy()
     final_df = final_df[final_df['hpo_features'].apply(lambda x: isinstance(x, str))]
@@ -31,9 +34,11 @@ def read_csv():
             final_df.at[index, 'icd9_code'] = np.int64(0)
 
     data_client1, test_data_client1 = train_test_split(final_df, test_size=0.2, random_state=0)
-
-    data_client1.to_csv('/output/data.csv', index=False)
-    test_data_client1.to_csv('/output/test_data.csv', index=False)
+    import os
+    os.mkdir('/mnt/output/data')
+    data_client1.to_csv('/mnt/output/data/data.csv', index=False)
+    test_data_client1.to_csv('/mnt/output/data/test_data.csv', index=False)
+    return data_client1
 
 # data_client1, test_data_client1 = train_test_split(client1, test_size=0.2, random_state=0)
 # data_client2, test_data_client2 = train_test_split(client2, test_size=0.2, random_state=0)
