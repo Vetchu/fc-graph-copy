@@ -36,8 +36,8 @@ def read_csv(path):
     data_client1, test_data_client1 = train_test_split(final_df, test_size=0.2, random_state=0)
     import os
     os.mkdir('/mnt/output/data')
-    data_client1.to_csv('/mnt/output/data/data.csv', index=False)
-    test_data_client1.to_csv('/mnt/output/data/test_data.csv', index=False)
+    data_client1.to_csv('/mnt/output/train.csv', index=False)
+    test_data_client1.to_csv('/mnt/output/test.csv', index=False)
     return data_client1
 
 # data_client1, test_data_client1 = train_test_split(client1, test_size=0.2, random_state=0)
